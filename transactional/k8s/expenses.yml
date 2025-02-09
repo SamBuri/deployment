@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: expenses
+  labels:
+    app: expenses
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: expenses
+  template:
+    metadata:
+      labels:
+        app: expenses
+    spec:
+      containers:
+        - name: expenses
+          image: samburi/expenses:1.0.3
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 9016
+          env:
+            # - name: SPRING_PROFILES_ACTIVE
+            #   value: kubernetes
+
+            - name: ISSUER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: issuer-url
+                  optional: false
+            - name: GATEWAY_URL
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: gateway-url
+                  optional: false                  
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: dbhost
+                  optional: false
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: username
+                  optional: false
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: password
+                  optional: false
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                    name: saburi-secret
+                    key: db-port
+                    optional: false
+            - name: KAFKA_URL
+              valueFrom:
+                secretKeyRef:
+                    name: saburi-secret
+                    key: kafka-url
+                    optional: false           
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: expenses
+spec:
+  ports:
+    - targetPort: 9016
+      port: 80
+  selector:
+    app: expenses
+
+# kubectl apply -f expenses.yml
+# kubectl delete -f expenses.yml

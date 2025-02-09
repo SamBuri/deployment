@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: profile
+  labels:
+    app: profile
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: profile
+  template:
+    metadata:
+      labels:
+        app: profile
+    spec:
+      containers:
+        - name: profile
+          image: samburi/profile:1.0.3.6
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 9003
+          env:
+            # - name: SPRING_PROFILES_ACTIVE
+            #   value: kubernetes
+          
+            - name: ISSUER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: issuer-url
+                  optional: false
+            - name: GATEWAY_URL
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: gateway-url
+                  optional: false                  
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: dbhost
+                  optional: false
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: username
+                  optional: false
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: password
+                  optional: false
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                    name: saburi-secret
+                    key: db-port
+                    optional: false
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: profile
+spec:
+  ports:
+    - targetPort: 9003
+      port: 80
+  selector:
+    app: profile
+
+# kubectl apply -f profile.yml
+# kubectl delete -f profile.yml

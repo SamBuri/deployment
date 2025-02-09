@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lookup
+  labels:
+    app: lookup
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lookup
+  template:
+    metadata:
+      labels:
+        app: lookup
+    spec:
+      containers:
+        - name: lookup
+          image: samburi/lookup:1.0.4
+          # imagePullPolicy: Always
+          # resources:
+          #   requests:
+          #     memory: 64Mi
+          #   limits:
+          #       memory: 128Mi
+          ports:
+            - containerPort: 9001
+          env:
+            - name: ISSUER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: issuer-url
+                  optional: false
+            - name: GATEWAY_URL
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: gateway-url
+                  optional: false                  
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: dbhost
+                  optional: false
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: username
+                  optional: false
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: password
+                  optional: false
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: db-port
+                  optional: false
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lookup
+spec:
+  ports:
+    - targetPort: 9001
+      port: 80
+  selector:
+    app: lookup
+
+# kubectl apply -f lookup.yml
+# kubectl delete -f lookup.yml

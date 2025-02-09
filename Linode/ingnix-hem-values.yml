@@ -1,0 +1,5 @@
+controller:
+  service:
+    loadBalancerIP: 45.79.244.33
+
+    # helm upgrade ingress-nginx ingress-nginx/ingress-nginx -f Linode/ingnix-hem-values.yml

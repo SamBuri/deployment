@@ -1,0 +1,6 @@
+replicaCount: 2
+
+
+# helm install kafka -f kafka-values.yaml bitnami/kafka
+# helm upgrade kafka  bitnami/kafka -f deloyments/kafka-values.yaml
+# kafka-0.kafka-headless.default.svc.cluster.local:9092

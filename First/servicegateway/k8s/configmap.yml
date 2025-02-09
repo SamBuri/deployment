@@ -1,0 +1,138 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: servicegateway
+  labels:
+    app: servicegateway
+data:
+  application.yml: |-
+    server:
+      port: ${PORT:8089}
+    issuer:
+      url: ${ISSUER_URL:http://localhost:8080/auth/realms/saburi-realm}
+
+    resilience4j.circuitbreaker:
+      configs:
+        default:
+        
+          minimumNumberOfCalls: 5
+          permittedNumberOfCallsInHalfOpenState: 3
+          automaticTransitionFromOpenToHalfOpenEnabled: true
+          waitDurationInOpenState: 2s
+          failureRateThreshold: 50
+          eventConsumerBufferSize: 10
+          recordExceptions:
+            - org.springframework.web.client.HttpServerErrorException
+            - java.io.IOException
+          ignoreExceptions:
+            - java.lang.IllegalStateException
+        shared:
+          slidingWindowSize: 100
+          permittedNumberOfCallsInHalfOpenState: 30
+          waitDurationInOpenState: 1s
+          failureRateThreshold: 50
+          eventConsumerBufferSize: 10
+          ignoreExceptions:
+            - java.lang.IllegalStateException
+      instances:
+        backendA:
+          baseConfig: 
+        backendB:
+          slidingWindowSize: 10
+          minimumNumberOfCalls: 10
+          permittedNumberOfCallsInHalfOpenState: 3
+          waitDurationInOpenState: 1s
+          failureRateThreshold: 50
+          eventConsumerBufferSize: 10
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: "*"
+        restart:
+          enabled: true
+           
+    spring:
+      main:
+        allow-bean-definition-overriding: true
+      security:
+        oauth2:
+          resourceserver:
+            jwt:
+              issuer-uri: ${issuer.url}
+          client:
+            provider:
+              saburi-realm-provider:
+                issuer-uri: ${issuer.url}
+                user-name-attribute: preferred_username
+            registration:
+              keycloak-easy-values:
+                provider: saburi-realm-provider
+                client-id: easy-values
+                client-secret: ${CLIENT_SECRET:RvvXAhKjDm4t8vcdQPQlDgaZ9UYluimL}
+                authorization-grant-type: authorization_code
+                redirect-uri: "{baseUrl}/login/oauth2/code/keycloak"
+                scope: openid
+      cloud:
+        kubernetes:
+          discovery:
+            enabled: true
+            all-namespaces: true
+        loadbalancer:
+          ribbon:
+            enabled: false
+        gateway:
+          default-filters:
+             - TokenRelay
+          discovery:
+            locator:
+              enabled: true
+              # locowerCaseServiceId: false
+          routes:
+          -   id: organisation
+              uri: https://organisation.capidattex.net
+              predicates:
+                - Path=/organisation/**, /currencies/**, /companies/**, /branches/**, /tenants/**, /idgenerator/**
+          -   id: lookup
+              uri: https://lookup.capidattex.net
+              predicates:
+                - Path=/lookupobjects/**,/lookupdata/**,/enums/**,/measuregroups/**, /itemcategories/**, /items/**
+          -   id: profile
+              uri:  https://profile.capidattex.net
+              predicates:
+                - Path=/countries/**, /districts/**, /counties/**, /subcounties/**, /parishes/**, /villages/**, /profiles/**         
+         
+          -   id: customer
+              uri:  https://customer.capidattex.net
+              predicates:
+                - Path=/customer/enums/**, /accountsgroups/**, /customers/**, /customersponsors/**, /customerledgers/**, /engagements/**
+          -   id: accounting
+              uri:  https://accounting.capidattex.net
+              predicates:
+               - Path=/financialperiods/**, /accountcategories/**, /accounts/**, /journals/**, /generalledgers/**, /businesssectionaccounts/**
+       
+          -   id: sales
+              uri:  https://sales.capidattex.net
+              predicates:
+                - Path=/sales/enums/**, /invoices/**, /receipts/**, /receiptinvoices/**, /refunds/**
+          -   id: banking
+              uri:  https://banking.capidattex.net
+              predicates:
+                - Path=/bankaccounts/**, /bankledgers/**, /banktransfers/**, /banktransactions/**
+          -   id: loan
+              uri: https://loan.capidattex.net
+              predicates:
+                - Path=/periods/**, /loanproducts/**, /loan/enums/**, /loanapplications/**, /loanapprovals/**, /loans/**, /loanbills/**,/loanbilldetails/**, /guarantors/**, /loantransitions/**, /loantransactions/**
+          -   id: expense
+              uri: https://expenses.capidattex.net
+              predicates:
+                    - Path=/expensegroups/**, /itembudgets/**, /expenses/**, /expensedetails/**
+
+
+                # kubectl apply -f configmap.yml
+                
+                # kubectl apply -f k8s/configmap.yml
+                # kubectl apply -f k8s/configmap.yml
+                # kubectl describe configmaps servicegateway
+     
+

@@ -1,0 +1,170 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: easyvalues-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    kubernetes.io/ingress.class: "nginx"
+
+spec:
+  tls:
+  - hosts:
+    - auth.capidattex.net
+    - organisation.capidattex.net
+    - api.capidattex.net
+    - easyvalues.capidattex.net
+    - evtest.capidattex.net
+    - lookup.capidattex.net
+    - profile.capidattex.net
+    - banking.capidattex.net
+    - customer.capidattex.net
+    - sales.capidattex.net
+    - loan.capidattex.net
+    - accounting.capidattex.net
+    - expenses.capidattex.net
+    secretName: letsencrypt-prod
+  rules:
+    - host: auth.capidattex.net
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: keycloak
+                port:
+                  number: 80
+
+    - host: organisation.capidattex.net
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: organisation
+                port:
+                  number: 80                
+    
+    - host: api.capidattex.net
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: servicegateway
+                port:
+                  number: 80
+
+    - host: easyvalues.capidattex.net
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: easyvalues
+                port:
+                  number: 80
+    - host: evtest.capidattex.net
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: easyvalues
+                port:
+                  number: 3000             
+   
+    - host: lookup.capidattex.net
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: lookup
+                port:
+                  number: 80
+
+    - host: customer.capidattex.net
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: customer
+                port:
+                  number: 80
+
+    - host: banking.capidattex.net
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: banking
+                port:
+                  number: 80
+    
+    - host: profile.capidattex.net
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: profile
+                port:
+                  number: 80
+    - host: loan.capidattex.net
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: loan
+                port:
+                  number: 80
+    - host: sales.capidattex.net
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: sales
+                port:
+                  number: 80
+    - host: accounting.capidattex.net
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: accounting
+                port:
+                  number: 80
+   
+    - host: expenses.capidattex.net
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: expenses
+                port:
+                  number: 80
+  
+    
+
+
+                  
+# kubectl apply -f Ingress/easyvalues-ingress.yml
