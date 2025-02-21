@@ -1,0 +1,79 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-pv
+spec:
+  capacity:
+    storage: 10Gi  # Match the PVC's requested size
+  accessModes:
+    - ReadWriteOnce  # Match the PVC's access mode
+  hostPath:
+    path: /mnt/data  # Use a local directory (for testing only)
+---
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-pv-0
+spec:
+  capacity:
+    storage: 10Gi  # Match the PVC's requested size
+  accessModes:
+    - ReadWriteOnce  # Match the PVC's access mode
+  hostPath:
+    path: /mnt/data0  # Use a local directory (for testing only)
+
+---
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-pv-1
+spec:
+  capacity:
+    storage: 10Gi  # Match the PVC's requested size
+  accessModes:
+    - ReadWriteOnce  # Match the PVC's access mode
+  hostPath:
+    path: /mnt/data1  # Use a local directory (for testing only)
+
+---
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-pv-2
+spec:
+  capacity:
+    storage: 10Gi  # Match the PVC's requested size
+  accessModes:
+    - ReadWriteOnce  # Match the PVC's access mode
+  hostPath:
+    path: /mnt/data2  # Use a local directory (for testing only)
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-pv-3
+spec:
+  capacity:
+    storage: 10Gi  # Match the PVC's requested size
+  accessModes:
+    - ReadWriteOnce  # Match the PVC's access mode
+  hostPath:
+    path: /mnt/data3  # Use a local directory (for testing only)
+
+---
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-pv-4
+spec:
+  capacity:
+    storage: 10Gi  # Match the PVC's requested size
+  accessModes:
+    - ReadWriteOnce  # Match the PVC's access mode
+  hostPath:
+    path: /mnt/data4  # Use a local directory (for testing only)

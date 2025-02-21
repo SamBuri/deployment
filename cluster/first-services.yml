@@ -1,0 +1,119 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: organisation
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: organisation
+  template:
+    metadata:
+      labels:
+        app: organisation
+    spec:
+      containers:
+        - name: organisation
+          image: samburi/organisation:1.0.3.7
+          ports:
+            - containerPort: 9000
+          env:
+            - name: ISSUER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: issuer-url
+                  optional: false
+            - name: GATEWAY_URL
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: gateway-url
+                  optional: false                  
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: dbhost
+                  optional: false
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: username
+                  optional: false
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: password
+                  optional: false
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: db-port
+                  optional: false
+          hostAliases:
+            - ip: "${HOST_MACHINE}"
+              hostnames:
+                - "ev.test"
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: organisation
+spec:
+  selector:
+    app: organisation
+  ports:
+    - protocol: TCP
+      port: 9000
+      targetPort: 9000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: servicegateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: servicegateway
+  template:
+    metadata:
+      labels:
+        app: servicegateway
+    spec:
+      containers:
+        - name: servicegateway
+          image: samburi/service-gateway:1.0.3.7
+          ports:
+            - containerPort: 8089
+          env:
+            - name: ISSUER_URL
+              value: "http://ev.test:8100/auth/realms/saburi-realm"
+            - name: CLIENT_SECRET
+              value: "n6qU6fp2zzg3YtUDD9A4kBauUV1nJ0xu"
+            - name: LB_HOST
+              value: "http://ev.test"
+            - name: ORG_URL
+              value: "http://ev.test:9000"
+          hostAliases:
+            - ip: "${HOST_MACHINE}"
+              hostnames:
+                - "ev.test"
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: servicegateway
+spec:
+  selector:
+    app: servicegateway
+  ports:
+    - protocol: TCP
+      port: 8089
+      targetPort: 8089
