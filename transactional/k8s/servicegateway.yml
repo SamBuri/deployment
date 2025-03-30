@@ -1,3 +1,32 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: spring-cloud-kubernetes
+  namespace: default
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: spring-cloud-kubernetes
+  namespace: default
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "pods", "services", "endpoints", "secrets"]
+    verbs: ["get", "list", "watch"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: spring-cloud-kubernetes
+  namespace: default
+subjects:
+  - kind: ServiceAccount
+    name: spring-cloud-kubernetes
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: spring-cloud-kubernetes
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -14,6 +43,14 @@ spec:
       labels:
         app: servicegateway
     spec:
+      # Add hostAliases to resolve auth.ev.test to 192.168.1.100
+      # hostAliases:
+      # - ip: "192.168.1.100"
+      #   hostnames:
+      #   - "auth.ev.test"
+      #   - "org.ev.test"
+      #   - "api.ev.test"
+      serviceAccountName: spring-cloud-kubernetes
       containers:
         - name: servicegateway
           image: samburi/service-gateway:1.0.3.7
@@ -33,6 +70,10 @@ spec:
                   name: saburi-secret
                   key: client-secret
                   optional: false
+            - name: SPRING_CLOUD_BOOTSTRAP_ENABLED 
+              value: "true"
+            - name: SPRING_CLOUD_KUBERNETES_SECRETS_ENABLEAPI
+              value: "true"                  
           ports:
             - name: http
               containerPort: 8089
@@ -53,9 +94,3 @@ spec:
       targetPort: 8089
   selector:
     app: servicegateway
-# kind load docker-image samburi/service-gateway:1.0.2.3
-# kubectl apply -f deployment.yml
-#  kubectl apply -f k8s/deployment.yml
-#
-# kubectl get pod keycloak-7c56d74d58-4nwml --template='{{(index (index .spec.containers 0).ports 0).containerPort}}{{"\n"}}'
-# kubectl port-forward deployment/keycloak 8089:8089

@@ -132,7 +132,42 @@ data:
               uri: https://shares.capidattex.net
               predicates:
                     - Path=/sharetypes/**,/shares/enums/**, /shareholders/**, /investments/**, /sharetransfers/**, /shareholderledgers/**, /shareholdershares/** 
-
-
-     
+    security:
+      white-listed-paths:
+        - /discoveryclientname/
+        - /idgenerator/**
+        - /actuator/**
+        - /logout.html
+        - /customer/customername/**
+        - /lookupdata/lookupdataname/{id}/{caption}
+        - /lookupdata/lookupdataname/**
+        - /bankaccounts/bankaccountname/**
+        - /currencies/currency/**
+        - /customers/customer/**
+        - /lookupdata/exists/**
+        - /receiptinvoices/mini/**
+        - /tenants/mini
+        - /tenants/mini/**
+        - /branches/branchname/**
+        - /branches/devname/**
+        - /companies/mini
+        - /companies/mini/initialize
+        - /companies/mini/devname/**
+        - /companies/mini/**
+        - /itemcategories/itemcategory/**
+        - /businesssectionaccounts/businesssectionitemcategory/**
+        - /items/mini/**
+        - /bankaccounts/mini/**
+        - /financialperiods/mini/active
+        - /customers/{referenceType}/{referenceNo}
+        - /accountsgroups/businesssectionid/{businessSectionId}
+        - /items/mini/{id}
+        - /banking/enums/**
+        - sales/enums/**
+        - /profiles/enums/**
+        - /expense/enums/**
+        - /shares/enums/**
+        - /customer/enums/**
+        - /lookup/enums/**
+        - /organisation/enums/**
 
