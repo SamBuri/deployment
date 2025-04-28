@@ -1,0 +1,1 @@
+kubectl create secret tls internal-tls --cert=internal-tls.crt --key=internal-tls.key -n default

@@ -1,0 +1,169 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: servicegateway
+  labels:
+    app: servicegateway
+data:
+  application.yml: |-
+    server:
+      port: ${PORT:8089}
+    issuer:
+      url: ${ISSUER_URL:http://localhost:8080/auth/realms/saburi-realm}
+
+    resilience4j.circuitbreaker:
+      configs:
+        default:
+        
+          minimumNumberOfCalls: 5
+          permittedNumberOfCallsInHalfOpenState: 3
+          automaticTransitionFromOpenToHalfOpenEnabled: true
+          waitDurationInOpenState: 2s
+          failureRateThreshold: 50
+          eventConsumerBufferSize: 10
+          recordExceptions:
+            - org.springframework.web.client.HttpServerErrorException
+            - java.io.IOException
+          ignoreExceptions:
+            - java.lang.IllegalStateException
+        shared:
+          slidingWindowSize: 100
+          permittedNumberOfCallsInHalfOpenState: 30
+          waitDurationInOpenState: 1s
+          failureRateThreshold: 50
+          eventConsumerBufferSize: 10
+          ignoreExceptions:
+            - java.lang.IllegalStateException
+      instances:
+        backendA:
+          baseConfig: 
+        backendB:
+          slidingWindowSize: 10
+          minimumNumberOfCalls: 10
+          permittedNumberOfCallsInHalfOpenState: 3
+          waitDurationInOpenState: 1s
+          failureRateThreshold: 50
+          eventConsumerBufferSize: 10
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: "*"
+        restart:
+          enabled: true
+           
+    spring:
+      main:
+        allow-bean-definition-overriding: true
+        web-application-type: reactive 
+      security:
+        oauth2:
+          resourceserver:
+            jwt:
+              issuer-uri: ${issuer.url}
+          client:
+            provider:
+              saburi-realm-provider:
+                issuer-uri: ${issuer.url}
+                user-name-attribute: preferred_username
+            registration:
+              keycloak-easy-values:
+                provider: saburi-realm-provider
+                client-id: easy-values
+                client-secret: ${CLIENT_SECRET:RF7mod36HNtKPS5Um56Xkctj2IyZtERn}
+                authorization-grant-type: authorization_code
+                redirect-uri: "{baseUrl}/login/oauth2/code/keycloak"
+                scope: openid
+      cloud:
+        kubernetes:
+          discovery:
+            enabled: true
+            all-namespaces: true
+        loadbalancer:
+          ribbon:
+            enabled: false
+        gateway:
+          default-filters:
+             - TokenRelay
+          discovery:
+            locator:
+              enabled: true
+              # locowerCaseServiceId: false
+          routes:
+          -   id: organisation
+              uri: https://org.capidattex.net
+              predicates:
+                - Path=/organisation/**,/organisationenums/**, /companies/**, /branches/**, /tenants/**, /idgenerator/**
+          -   id: lookup
+              uri: https://loo.capidattex.net
+              predicates:
+                - Path=/lookupobjects/**,/lookupdata/**,/enums/**,/measuregroups/**, /itemcategories/**, /items/**, /currencies/**
+          -   id: profile
+              uri:  https://pro.capidattex.net
+              predicates:
+                - Path= /profileenums/**, /countries/**, /districts/**, /counties/**, /subcounties/**, /parishes/**, /villages/**, /profiles/** , /profilepictures/**         
+         
+          -   id: accounting
+              uri:  https://acc.capidattex.net
+              predicates:
+                - Path=/accountingenums/**, /financialperiods/**, /accountcategories/**, /accounts/**, /journals/**, /generalledgers/**, /businesssectionaccounts/**
+       
+          -   id: sales
+              uri:  https://sal.capidattex.net
+              predicates:
+                - Path=/salesenums/**, /invoices/**,/invoicedetails/**, /receipts/**, /receiptinvoices/**, /refunds/**,/customer/enums/**,/customergroups/**, /customergroupitemcategories/**, /customers/**, /customersponsors/**, /customerledgers/**, /engagements/**
+          -   id: banking
+              uri:  https://ban.capidattex.net
+              predicates:
+                - Path=/bankingenums/**,/bankaccounts/**, /bankledgers/**, /banktransfers/**, /banktransactions/**
+          -   id: loan
+              uri: https://loa.capidattex.net
+              predicates:
+                - Path=/periods/**, /loanproducts/**, /loanenums/**, /loanapplications/**, /loanapprovals/**, /loans/**, /loanbills/**,/loanbilldetails/**,/guarantors/**, /loantransitions/**, /loantransactions/**
+          -   id: expense
+              uri: https://exp.capidattex.net
+              predicates:
+                    - Path=/expensegroups/**, /itembudgets/**, /expenses/**, /expensedetails/**
+          -   id: shares
+              uri: https://sha.capidattex.net
+              predicates:
+                    - Path=/sharetypes/**,/sharesenums/**, /shareholders/**, /investments/**, /sharetransfers/**, /shareholderledgers/**, /shareholdershares/** 
+    security:
+      white-listed-paths:
+        - /discoveryclientname/
+        - /idgenerator/**
+        - /actuator/**
+        - /logout.html
+        - /customer/customername/**
+        - /lookupdata/lookupdataname/{id}/{caption}
+        - /lookupdata/lookupdataname/**
+        - /bankaccounts/bankaccountname/**
+        - /currencies/currency/**
+        - /customers/customer/**
+        - /lookupdata/exists/**
+        - /receiptinvoices/mini/**
+        - /tenants/mini
+        - /tenants/mini/**
+        - /branches/branchname/**
+        - /branches/devname/**
+        - /companies/mini
+        - /companies/mini/initialize
+        - /companies/mini/devname/**
+        - /companies/mini/**
+        - /itemcategories/itemcategory/**
+        - /businesssectionaccounts/businesssectionitemcategory/**
+        - /items/mini/**
+        - /bankaccounts/mini/**
+        - /financialperiods/mini/active
+        - /customers/{referenceType}/{referenceNo}
+        - /accountsgroups/businesssectionid/{businessSectionId}
+        - /items/mini/{id}
+        - /bankingenums/**
+        - salesenums/**
+        - /profiles/enums/**
+        - /expenseenums/**
+        - /sharesenums/**
+        - /lookupenums/**
+        - /organisationenums/**
+        - /accountingenums/**
+

@@ -1,0 +1,138 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: spring-cloud-kubernetes
+  namespace: default
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: spring-cloud-kubernetes
+  namespace: default
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "pods", "services", "endpoints", "secrets"]
+    verbs: ["get", "list", "watch"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: spring-cloud-kubernetes
+  namespace: default
+subjects:
+  - kind: ServiceAccount
+    name: spring-cloud-kubernetes
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: spring-cloud-kubernetes
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: servicegateway
+  labels:
+    app: servicegateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: servicegateway
+  template:
+    metadata:
+      labels:
+        app: servicegateway
+    spec:
+      serviceAccountName: spring-cloud-kubernetes
+      initContainers:
+      - name: create-keystore
+        image: alpine:3.18
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          echo "Installing openssl..." &&
+          apk add openssl &&
+          echo "Checking certificate files..." &&
+          ls -l /etc/tls &&
+          echo "tls.crt contents:" &&
+          cat /etc/tls/tls.crt || { echo "Failed to read tls.crt"; exit 1; } &&
+          echo "tls.key contents:" &&
+          cat /etc/tls/tls.key || { echo "Failed to read tls.key"; exit 1; } &&
+          echo "Creating PKCS12 keystore..." &&
+          openssl pkcs12 -export -in /etc/tls/tls.crt -inkey /etc/tls/tls.key -out /keystore/keystore.p12 -name servicegateway -passout pass: || {
+            echo "Failed to create keystore. Exit code: $?";
+            exit 1;
+          } &&
+          echo "Keystore created successfully at /keystore/keystore.p12."
+        volumeMounts:
+        - name: tls-certs
+          mountPath: /etc/tls
+        - name: keystore-volume
+          mountPath: /keystore
+      volumes:
+      - name: tls-certs
+        secret:
+          secretName: letsencrypt-prod
+      - name: keystore-volume
+        emptyDir: {}
+      containers:
+      - name: servicegateway
+        image: samburi/service-gateway:1.0.3.8
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8089
+        - name: https
+          containerPort: 8089
+        env:
+        - name: ORG_URL
+          value: https://org.capidattex.net
+        - name: ISSUER_URL
+          valueFrom:
+            secretKeyRef:
+              name: saburi-secret
+              key: issuer-url
+              optional: false
+        - name: CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: saburi-secret
+              key: client-secret
+              optional: false
+        - name: SPRING_CLOUD_BOOTSTRAP_ENABLED
+          value: "true"
+        - name: SPRING_CLOUD_KUBERNETES_SECRETS_ENABLEAPI
+          value: "true"
+        - name: SERVER_SSL_ENABLED
+          value: "true"
+        - name: SERVER_SSL_KEY_STORE_TYPE
+          value: "PKCS12"
+        - name: SERVER_SSL_KEY_STORE
+          value: "/keystore/keystore.p12"
+        - name: SERVER_SSL_KEY_STORE_PASSWORD
+          value: ""
+        # - name: SERVER_PORT
+        #   value: "8443"
+        volumeMounts:
+        - name: tls-certs
+          mountPath: /etc/tls
+        - name: keystore-volume
+          mountPath: /keystore
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: servicegateway
+  labels:
+    app: servicegateway
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8089
+  - name: https
+    port: 443
+    targetPort: 8089
+  selector:
+    app: servicegateway
+  type: ClusterIP

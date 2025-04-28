@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: organisation
+  labels:
+    app: organisation
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: organisation
+  template:
+    metadata:
+      labels:
+        app: organisation
+    spec:
+      containers:
+        - name: organisation
+          image: samburi/organisation:1.0.3.7
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 9000
+          env:
+            - name: ISSUER_URL
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: issuer-url
+                  optional: false
+            - name: GATEWAY_URL
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: gateway-url
+                  optional: false                  
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: dbhost
+                  optional: false
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: username
+                  optional: false
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: password
+                  optional: false
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: saburi-secret
+                  key: db-port
+                  optional: false
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: organisation
+spec:
+  ports:
+    - targetPort: 9000
+      port: 80
+  selector:
+    app: organisation
+
+# kubectl apply -f k8s/deployment.yml
+# kubectl delete -f k8s/deployment.yml

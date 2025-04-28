@@ -1,0 +1,126 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: keycloak-secret
+  namespace: default
+data:
+  kc-db-url: amRiYzpteXNxbDovL2Vhc3l2YWx1ZXMtY2FwaS5jMHVib25jbm9vZHouZXUtY2VudHJhbC0xLnJkcy5hbWF6b25hd3MuY29tOjMzMDYva2V5Y2xvYWtfY2l2bw==
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak
+  namespace: default
+  labels:
+    app: keycloak
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  - name: https
+    port: 443
+    targetPort: 8443
+  selector:
+    app: keycloak
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      initContainers:
+      - name: extract-themes
+        image: busybox:1.36
+        command: ["/bin/sh", "-c"]
+        args:
+        - "tar -xzf /mnt/themes.tar.gz -C /themes"
+        volumeMounts:
+        - name: themes-tar
+          mountPath: /mnt
+        - name: themes-volume
+          mountPath: /themes
+      volumes:
+      - name: tls-certs
+        secret:
+          secretName: letsencrypt-prod
+      - name: themes-tar
+        configMap:
+          name: keycloak-themes
+      - name: themes-volume
+        emptyDir: {}
+      containers:
+      - name: keycloak
+        image: quay.io/keycloak/keycloak:26.2.0
+        command: ["/opt/keycloak/bin/kc.sh"]
+        args:
+        - "start"
+        - "--https-certificate-file=/etc/keycloak/certs/tls.crt"
+        - "--https-certificate-key-file=/etc/keycloak/certs/tls.key"
+        env:
+        - name: KC_DB
+          value: mysql
+        - name: KC_DB_URL
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-secret
+              key: kc-db-url
+              optional: false
+        - name: KC_DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: saburi-secret
+              key: username
+              optional: false
+        - name: KC_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: saburi-secret
+              key: password
+              optional: false
+        - name: KEYCLOAK_BOOTSTRAP_ADMIN
+          value: Saburi
+        - name: KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD
+          value: Bigsize4.
+        - name: KC_HOSTNAME
+          value: auth.capidattex.net
+        - name: KC_HOSTNAME_STRICT
+          value: "false"
+        - name: KC_HTTP_ENABLED
+          value: "false"
+        - name: KC_HTTPS_ENABLED
+          value: "true"
+        - name: KC_PROXY
+          value: edge
+        - name: KC_SPI_THEME_STATIC_MAX_AGE
+          value: "-1"
+        - name: KC_SPI_THEME_CACHE_THEMES
+          value: "false"
+        - name: KC_SPI_THEME_CACHE_TEMPLATES
+          value: "false"
+        ports:
+        - containerPort: 8080
+        - containerPort: 8443
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: tls-certs
+          mountPath: /etc/keycloak/certs
+        - name: themes-volume
+          mountPath: /opt/keycloak/themes

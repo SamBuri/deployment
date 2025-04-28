@@ -1,0 +1,124 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: organisation
+  labels:
+    app: organisation
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: organisation
+  template:
+    metadata:
+      labels:
+        app: organisation
+    spec:
+      initContainers:
+      - name: create-keystore
+        image: alpine:3.18
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          echo "Installing openssl..." &&
+          apk add openssl &&
+          echo "Checking certificate files..." &&
+          ls -l /etc/tls &&
+          echo "tls.crt contents:" &&
+          cat /etc/tls/tls.crt || { echo "Failed to read tls.crt"; exit 1; } &&
+          echo "tls.key contents:" &&
+          cat /etc/tls/tls.key || { echo "Failed to read tls.key"; exit 1; } &&
+          echo "Creating PKCS12 keystore..." &&
+          openssl pkcs12 -export -in /etc/tls/tls.crt -inkey /etc/tls/tls.key -out /keystore/keystore.p12 -name organisation -passout pass: || {
+            echo "Failed to create keystore. Exit code: $?";
+            exit 1;
+          } &&
+          echo "Keystore created successfully at /keystore/keystore.p12."
+        volumeMounts:
+        - name: tls-certs
+          mountPath: /etc/tls
+        - name: keystore-volume
+          mountPath: /keystore
+      volumes:
+      - name: tls-certs
+        secret:
+          secretName: letsencrypt-prod
+      - name: keystore-volume
+        emptyDir: {}
+      containers:
+      - name: organisation
+        image: samburi/organisation:1.0.3.7
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9000
+        - containerPort: 9443
+        env:
+        - name: ISSUER_URL
+          valueFrom:
+            secretKeyRef:
+              name: saburi-secret
+              key: issuer-url
+              optional: false
+        - name: GATEWAY_URL
+          valueFrom:
+            secretKeyRef:
+              name: saburi-secret
+              key: gateway-url
+              optional: false
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: saburi-secret
+              key: dbhost
+              optional: false
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: saburi-secret
+              key: username
+              optional: false
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: saburi-secret
+              key: password
+              optional: false
+        - name: DB_PORT
+          valueFrom:
+            secretKeyRef:
+              name: saburi-secret
+              key: db-port
+              optional: false
+        - name: SERVER_SSL_ENABLED
+          value: "true"
+        - name: SERVER_SSL_KEY_STORE_TYPE
+          value: "PKCS12"
+        - name: SERVER_SSL_KEY_STORE
+          value: "/keystore/keystore.p12"
+        - name: SERVER_SSL_KEY_STORE_PASSWORD
+          value: ""
+        - name: SERVER_PORT
+          value: "9443"
+        volumeMounts:
+        - name: tls-certs
+          mountPath: /etc/tls
+        - name: keystore-volume
+          mountPath: /keystore
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: organisation
+  labels:
+    app: organisation
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 9000
+  - name: https
+    port: 443
+    targetPort: 9443
+  selector:
+    app: organisation
+  type: ClusterIP

@@ -1,0 +1,22 @@
+[req]
+distinguished_name = req_distinguished_name
+req_extensions = v3_req
+prompt = no
+
+[req_distinguished_name]
+CN = capidattex.net
+
+[v3_req]
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = organisation.default.svc.cluster.local
+DNS.2 = lookup.default.svc.cluster.local
+DNS.3 = profile.default.svc.cluster.local
+DNS.4 = accounting.default.svc.cluster.local
+DNS.5 = sales.default.svc.cluster.local
+DNS.6 = banking.default.svc.cluster.local
+DNS.7 = loan.default.svc.cluster.local
+DNS.8 = expense.default.svc.cluster.local
+DNS.9 = shares.default.svc.cluster.local
+DNS.10 = servicegateway.default.svc.cluster.local

@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: easyvalues
+  labels:
+    app: easyvalues
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: easyvalues
+  template:
+    metadata:
+      labels:
+        app: easyvalues
+    spec:
+      containers:
+        - name: easyvalues
+          image: samburi/easyvalues:2.0.0
+          imagePullPolicy: Always
+          env:
+          - name: EV_APP_API_URL
+            value: https://api.capidattex.net/
+                 
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: easyvalues
+spec:
+  # type: LoadBalancer
+  
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+  selector:
+    app: easyvalues
+
+# kubectl apply -f k8s/deployment.yaml
